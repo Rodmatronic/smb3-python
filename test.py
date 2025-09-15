@@ -5,10 +5,13 @@ import pygame
 DEBUG = True
 
 # variables for the x/y. Do not change winx and winy
+LIMIT_RUN_MAX = 5
+LIMIT_WALK_MAX = 3
+
 x = 0
 y = -455
-acceleration = 0.2
-limit = 6
+acceleration = 0.3
+limit = 3
 friction = 0.5
 velx = 0
 
@@ -30,7 +33,7 @@ colliders = [
     (0, 830, 1300, 70),
     (2274, 415, 2205, 70),
     # Pipes
-    (710, 755, 60, 60),
+    (705, 735, 64, 90),
 ]
 
 # init pygame
@@ -66,13 +69,20 @@ while running:
         direction = 1
         velx += acceleration
         x -= velx
+        if keys[pygame.K_x]:
+            limit = LIMIT_RUN_MAX
+        else:
+            limit = LIMIT_WALK_MAX
         if velx > limit:
             velx = limit
-        print(velx)
     elif keys[pygame.K_LEFT]:
         direction = 0
         velx += acceleration
         x += velx
+        if keys[pygame.K_x]:
+            limit = LIMIT_RUN_MAX
+        else:
+            limit = LIMIT_WALK_MAX
         if velx > limit:
             velx = limit
     elif keys[pygame.K_UP]:
