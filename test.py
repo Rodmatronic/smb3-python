@@ -1,12 +1,12 @@
-import pygame
 import os
+import pygame
 
 # Enable stuff for debugging, looks ugly
 DEBUG = True
 
 # variables for the x/y. Do not change winx and winy
 x = 0
-y = 0
+y = -455
 acceleration = 0.2
 limit = 6
 friction = 0.5
@@ -24,26 +24,28 @@ mariox = winx/2
 marioy = winy/2
 
 # boxes that define collision
+# 830 Y is the ground plane.
 colliders = [
     # Ground
-    (0, 415, 2205, 70),
+    (0, 830, 1300, 70),
     (2274, 415, 2205, 70),
     # Pipes
-    (900, 355, 60, 60),
-    (1218, 320, 60, 100),
-    (1475, 288, 60, 130),
-    (1826, 288, 60, 130),
+    (710, 755, 60, 60),
 ]
 
 # init pygame
 pygame.init()
+pygame.mixer.init()
 screen = pygame.display.set_mode((winx, winy))
 clock = pygame.time.Clock()
 running = True
+pygame.mixer.music.load("sound/track1.mp3")
+pygame.mixer.music.play(-1)
 
 # images
 stage = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "test.png")))
 mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
+hud = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "hud.png")))
 direction = 1
 
 # This makes mario's hitbox a bit wonky, since he is a square.
@@ -59,27 +61,26 @@ while running:
 
     # main key movement
     # Invert X, do not invert Y.
-    if event.type == pygame.KEYDOWN:
-        if event.key == pygame.K_RIGHT:
-            direction = 1
-            velx += acceleration
-            x -= velx
-            if velx > limit:
-                velx = limit
-            print(velx)
-        if event.key == pygame.K_LEFT:
-            direction = 0
-            velx += acceleration
-            x += velx
-            if velx > limit:
-                velx = limit
-        if event.key == pygame.K_UP:
-            marioy -= 5
-        if event.key == pygame.K_DOWN:
-            marioy += 5
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_RIGHT]:
+        direction = 1
+        velx += acceleration
+        x -= velx
+        if velx > limit:
+            velx = limit
+        print(velx)
+    elif keys[pygame.K_LEFT]:
+        direction = 0
+        velx += acceleration
+        x += velx
+        if velx > limit:
+            velx = limit
+    elif keys[pygame.K_UP]:
+        marioy -= 5
+    elif keys[pygame.K_DOWN]:
+        marioy += 5
     else:
         velx = 0
-        print(velx)
 
     # mario gravity
     mario_vely += fall_acceleration
@@ -112,14 +113,21 @@ while running:
         x = -4830
 
     screen.blit(stage, (x, y))
+    screen.blit(hud, (0, 400))
     
+    # very important to blit debug AFTER hud, so hitboxes may be viewed
     if DEBUG:
         for collider in colliders:
             pygame.draw.rect(screen, (255, 0, 0), 
                              (collider[0] + x, collider[1] + y, collider[2], collider[3]), 2)
 
     # Once the stage is done, render mario in whatever state he is set in.
-    screen.blit(mario, (mariox, marioy))
+    if direction == 1:
+        flipped_mario = pygame.transform.flip(mario, True, False)
+        screen.blit(flipped_mario, (mariox, marioy))
+    else:
+        screen.blit(mario, (mariox, marioy))
+
 
     # flip() the display to put your work on screen
     pygame.display.flip()
