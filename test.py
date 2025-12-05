@@ -1,26 +1,30 @@
 import os
 import pygame
+import sys
 
 # Enable stuff for debugging, looks ugly
-DEBUG = True
-
-# variables for the x/y. Do not change winx and winy
-LIMIT_RUN_MAX = 5
-LIMIT_WALK_MAX = 3
+DEBUG = False
 
 x = 0
-y = -455
-acceleration = 0.3
-limit = 3
+y = -385
+acceleration = 0.2
+if DEBUG:
+    limit = 50
+limit = 6
 friction = 0.5
 velx = 0
 
 mario_vely = 0
-fall_acceleration = 0.3
-fall_limit = 6
+fall_acceleration = 0.42
+fall_limit = 10
 
 winx = 640
 winy = 480
+
+# Why falling AND grounded? It's for animation. If the Y acceleration is positive, we are falling.
+falling = True
+grounded = False
+animationcounter = 0
 
 # Mario's Y axis is not locked to the stage like the X axis is.
 mariox = winx/2
@@ -29,11 +33,15 @@ marioy = winy/2
 # boxes that define collision
 # 830 Y is the ground plane.
 colliders = [
-    # Ground
-    (0, 830, 1300, 70),
-    (2274, 415, 2205, 70),
+    (0, 767, 18000, 70), # ground
+    (3744, 735, 150, 40), # ground stair 1
+    (3904, 705, 150, 40), # ground stair 2
+    (4030, 672, 150, 40), # ground stair 3
+    (4130, 640, 445, 140), # ground stair 4, platform
+
+    # semisolid
+    (610, 671, 505, 6),
     # Pipes
-    (705, 735, 64, 90),
 ]
 
 # init pygame
@@ -41,61 +49,61 @@ pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((winx, winy))
 clock = pygame.time.Clock()
-running = True
 pygame.mixer.music.load("sound/track1.mp3")
 pygame.mixer.music.play(-1)
 
 # images
+background = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bggrass.png")))
 stage = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "test.png")))
 mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
-hud = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "hud.png")))
 direction = 1
 
 # This makes mario's hitbox a bit wonky, since he is a square.
 # But, on the other hand, it makes it easier. Easy, and works enough
-mario_rect = mario.get_rect()
-mario_width = mario_rect.width
-mario_height = mario_rect.height
+mario_width = 32
+mario_height = 47
 
-while running:
+while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running = False
-
+            pygame.quit()
+            sys.exit()
+            
     # main key movement
     # Invert X, do not invert Y.
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
         direction = 1
         velx += acceleration
-        x -= velx
-        if keys[pygame.K_x]:
-            limit = LIMIT_RUN_MAX
-        else:
-            limit = LIMIT_WALK_MAX
         if velx > limit:
             velx = limit
     elif keys[pygame.K_LEFT]:
+        
         direction = 0
         velx += acceleration
-        x += velx
-        if keys[pygame.K_x]:
-            limit = LIMIT_RUN_MAX
-        else:
-            limit = LIMIT_WALK_MAX
         if velx > limit:
             velx = limit
-    elif keys[pygame.K_UP]:
-        marioy -= 5
-    elif keys[pygame.K_DOWN]:
-        marioy += 5
     else:
-        velx = 0
+        velx = max(0, velx - friction)
+
+    if direction:
+        x -= velx
+    else:
+        x += velx
+
+    # Jump logic
+    if keys[pygame.K_z]:
+        if grounded:
+            mario_vely += -11
+            falling = False
+            grounded = False
 
     # mario gravity
     mario_vely += fall_acceleration
     if mario_vely > fall_limit:
         mario_vely = fall_limit
+    if mario_vely >= 0:
+        falling = True
     marioy += mario_vely
 
     if marioy > 500:
@@ -103,34 +111,43 @@ while running:
         x = 0
         marioy = winy/2
 
-    mario_rect = pygame.Rect(mariox, marioy, mario_width, mario_height)
+    if not grounded:
+        if falling:
+            mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mariofall.png")))
+        else:
+            mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mariojump.png")))
+    else:
+        mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
+
+    mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44)
+    horiz_rect = pygame.Rect(mariox-4, marioy+4, mario_width+8, mario_height-8)
     for collider in colliders:
         platform_rect = pygame.Rect(collider[0] + x, collider[1] + y, collider[2], collider[3])
 
         # Main mario collision
         if mario_rect.colliderect(platform_rect):
             if mario_rect.bottom > platform_rect.top and mario_vely > 0:
+                grounded = True
+                falling = False
                 marioy = platform_rect.top - mario_height
                 mario_vely = 0
-            elif mario_rect.top < platform_rect.bottom and mario_vely < 0:
-                marioy = platform_rect.bottom
-                mario_vely = 0
 
+        # Horizontal collision check
+        if horiz_rect.colliderect(platform_rect):
+            if direction == 1:  # right
+                x += velx   # push stage back
+            elif direction == 0:  # left
+                x -= velx
+    
     # Before the stage is blitted, check bounds.
     if x > 0:
         x = 0
-    if x < -4830:
-        x = -4830
+    if x < -9600:
+        x = -9600
 
+    screen.blit(background, (0, -300))
     screen.blit(stage, (x, y))
-    screen.blit(hud, (0, 400))
     
-    # very important to blit debug AFTER hud, so hitboxes may be viewed
-    if DEBUG:
-        for collider in colliders:
-            pygame.draw.rect(screen, (255, 0, 0), 
-                             (collider[0] + x, collider[1] + y, collider[2], collider[3]), 2)
-
     # Once the stage is done, render mario in whatever state he is set in.
     if direction == 1:
         flipped_mario = pygame.transform.flip(mario, True, False)
@@ -138,10 +155,18 @@ while running:
     else:
         screen.blit(mario, (mariox, marioy))
 
+    if DEBUG:
+        for collider in colliders:
+            pygame.draw.rect(screen, (255, 0, 0), 
+                             (collider[0] + x, collider[1] + y, collider[2], collider[3]), 2)
+        pygame.draw.rect(screen, (255, 0, 0), (mariox, marioy+45, mario_width, mario_height-45)) # vert
+        pygame.draw.rect(screen, (0, 255, 0), (mariox-4, marioy+4, mario_width+8, mario_height-8)) # horiz
 
-    # flip() the display to put your work on screen
+
     pygame.display.flip()
 
     clock.tick(60)  # limits FPS to 60
 
+print("why")
 pygame.quit()
+sys.exit()
