@@ -3,7 +3,7 @@ import pygame
 import sys
 
 # Enable stuff for debugging, looks ugly
-DEBUG = False
+DEBUG = True
 
 x = 0
 y = -385
@@ -125,12 +125,17 @@ while True:
         friction = 1.1
         mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 
-    mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44)
-    horiz_rect = pygame.Rect(mariox-4, marioy+4, mario_width+8, mario_height-8)
+    mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44) # the red one
+    horiz_rect = pygame.Rect(mariox-4, marioy+4, mario_width+8, mario_height-8) # the geen one
     for collider in colliders:
         platform_rect = pygame.Rect(collider[0] + x, collider[1] + y, collider[2], collider[3])
 
         # Main mario collision
+        if horiz_rect.colliderect(platform_rect) and ((mario_rect.left < platform_rect.left and velx > 0) or (mario_rect.right > platform_rect.right and velx < 0)):
+            x += velx
+            velx = 0;
+            print("collided side")
+
         if mario_rect.colliderect(platform_rect):
             if mario_rect.bottom > platform_rect.top and mario_vely > 0:
                 grounded = True
@@ -139,11 +144,6 @@ while True:
                 mario_vely = 0
 
         # Horizontal collision check
-        if horiz_rect.colliderect(platform_rect):
-            if direction == 1:  # right
-                x += velx   # push stage back
-            elif direction == 0:  # left
-                x -= velx
     
     # Before the stage is blitted, check bounds.
     if x > 0:
