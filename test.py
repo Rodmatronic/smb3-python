@@ -7,11 +7,11 @@ DEBUG = False
 
 x = 0
 y = -385
-acceleration = 0.2
+acceleration = 0.4
 if DEBUG:
     limit = 50
 limit = 6
-friction = 0.5
+friction = 1.2
 velx = 0
 
 mario_vely = 0
@@ -71,26 +71,30 @@ while True:
             
     # main key movement
     # Invert X, do not invert Y.
+
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
         direction = 1
-        velx += acceleration
-        if velx > limit:
-            velx = limit
+        velx += acceleration*friction
     elif keys[pygame.K_LEFT]:
         
         direction = 0
-        velx += acceleration
-        if velx > limit:
-            velx = limit
+        velx -= acceleration*friction
     else:
-        velx = max(0, velx - friction)
+        if velx > 0:
+            velx -= acceleration*friction/1.5
+            if velx < 0:
+                velx = 0
+        if velx < 0:
+            velx += acceleration*friction/1.5
+            if velx > 0:
+                velx = 0
 
-    if direction:
-        x -= velx
-    else:
-        x += velx
-
+    x -= velx
+    if velx > limit:
+        velx = limit
+    elif velx < - limit:
+        velx = -limit
     # Jump logic
     if keys[pygame.K_z]:
         if grounded:
@@ -112,11 +116,13 @@ while True:
         marioy = winy/2
 
     if not grounded:
+        friction = 0.4
         if falling:
             mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mariofall.png")))
         else:
             mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mariojump.png")))
     else:
+        friction = 1.1
         mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 
     mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44)
