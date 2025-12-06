@@ -3,7 +3,7 @@ import pygame
 import sys
 
 # Enable stuff for debugging, looks ugly
-DEBUG = True
+DEBUG = False
 
 x = 0
 y = -385
@@ -17,6 +17,9 @@ velx = 0
 mario_vely = 0
 fall_acceleration = 0.42
 fall_limit = 10
+
+skid_timer = 0
+skidding = False
 
 winx = 640
 winy = 480
@@ -53,10 +56,20 @@ pygame.mixer.music.load("sound/track1.mp3")
 pygame.mixer.music.play(-1)
 
 # images
+
+walk_frames = [
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "walk1.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "walk2.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "walk3.png")))
+]
+walk_index = 0
+walk_timer = 0
+
 background = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bggrass.png")))
 stage = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "test.png")))
 mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 direction = 1
+prev_direction = 1
 
 # This makes mario's hitbox a bit wonky, since he is a square.
 # But, on the other hand, it makes it easier. Easy, and works enough
@@ -71,13 +84,13 @@ while True:
             
     # main key movement
     # Invert X, do not invert Y.
-
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
+        prev_direction = direction
         direction = 1
         velx += acceleration*friction
     elif keys[pygame.K_LEFT]:
-        
+        prev_direction = direction
         direction = 0
         velx -= acceleration*friction
     else:
@@ -89,6 +102,14 @@ while True:
             velx += acceleration*friction/1.5
             if velx > 0:
                 velx = 0
+
+    if prev_direction != direction and grounded and abs(velx) > 2:
+        skidding = True
+        skid_timer = 0
+
+    if skidding == True:
+        skid_timer+=0.1
+        print(skid_timer)
 
     x -= velx
     if velx > limit:
@@ -123,7 +144,20 @@ while True:
             mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mariojump.png")))
     else:
         friction = 1.1
-        mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
+        if skidding and skid_timer < 1.5:
+                mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioskid.png")))
+        else:
+                skid_timer = 0
+                skidding = False
+                if abs(velx) > 0: # for negative and positive movement accel
+                        step = max(1, int(20 / abs(velx)))
+                        walk_timer += 1
+                        if walk_timer >= step:
+                               walk_timer = 0
+                               walk_index = (walk_index + 1) % len(walk_frames)
+                               mario = walk_frames[walk_index]
+                else:
+        	        mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 
     mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44) # the red one
     horiz_rect = pygame.Rect(mariox-4, marioy+4, mario_width+8, mario_height-8) # the geen one
