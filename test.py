@@ -125,6 +125,8 @@ prev_direction = 1
 mario_width = 32
 mario_height = 47
 
+font = pygame.font.Font(None, 24) # Default font with size 36
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -239,6 +241,12 @@ while True:
 
     screen.blit(background, (0, -400))
     screen.blit(stage, (x, y))
+    text_surface = font.render(str(mariox), True, (255, 255, 240))
+    screen.blit(text_surface, (25, 25))
+    text_surface = font.render(str(marioy), True, (255, 255, 240))
+    screen.blit(text_surface, (25, 45))
+    text_surface = font.render(str(velx), True, (255, 255, 240))
+    screen.blit(text_surface, (25, 65))
 
     # draw objects to the screen
     for c in colliders:
