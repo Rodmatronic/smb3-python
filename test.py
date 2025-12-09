@@ -3,16 +3,16 @@ import pygame
 import sys
 
 # Enable stuff for debugging, looks ugly
-DEBUG = True
+DEBUG = False
 
 x = 0
 y = -385
-acceleration = 0.2
-limit = 3
+acceleration = 0.4
+if DEBUG:
+    limit = 50
+limit = 6
 friction = 1.2
-velx = int(0)
-
-coins = 0
+velx = 0
 
 mario_vely = 0
 fall_acceleration = 0.42
@@ -20,8 +20,6 @@ fall_limit = 10
 
 skid_timer = 0
 skidding = False
-
-jump_timer = 0
 
 winx = 640
 winy = 480
@@ -105,7 +103,6 @@ pygame.mixer.music.set_volume(0.5)
 pygame.mixer.music.play(-1)
 
 # images
-
 walk_frames = [
     pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "walk1.png"))),
     pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "walk2.png"))),
@@ -124,63 +121,28 @@ direction = 1
 prev_direction = 1
 
 # This makes mario's hitbox a bit wonky, since he is a square.
+# But, on the other hand, it makes it easier. Easy, and works enough
 mario_width = 32
 mario_height = 47
-
-dragging = False
-drag_start = (0, 0)
-drag_end = (0, 0)
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                dragging = True
-                dx, dy = event.pos
-                lx = dx - x
-                ly = dy - y
-                drag_start = (lx, ly)
-                drag_end = (lx, ly)
-
-        if event.type == pygame.MOUSEMOTION:
-            if dragging:
-                mx, my = event.pos
-                lx = mx - x
-                ly = my - y
-                drag_end = (lx, ly)
-
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1 and dragging:
-                dragging = False
-                sx, sy = drag_start
-                ex, ey = drag_end
-                w = ex - sx
-                h = ey - sy
-                print("Box:", sx, sy, w, h)
-           
+            
     # main key movement
     # Invert X, do not invert Y.
+
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
         prev_direction = direction
         direction = 1
         velx += acceleration*friction
-        if keys[pygame.K_x]:
-            limit=5
-        else:
-            limit=3
     elif keys[pygame.K_LEFT]:
         prev_direction = direction
         direction = 0
         velx -= acceleration*friction
-        if keys[pygame.K_x]:
-             limit=5
-        else:
-             limit=3
     else:
         if velx > 0:
             velx -= acceleration*friction/1.5
@@ -204,16 +166,12 @@ while True:
         velx = limit
     elif velx < - limit:
         velx = -limit
-
     # Jump logic
     if keys[pygame.K_z]:
         if grounded:
-            jump_sound.play() 
             mario_vely += -11
             falling = False
             grounded = False
-    else:
-        jump_timer = 0
 
     # mario gravity
     mario_vely += fall_acceleration
@@ -229,7 +187,7 @@ while True:
         marioy = winy/2
 
     if not grounded:
-        friction = 0.4
+        friction = 1.6
         if falling:
             mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mariofall.png")))
         else:
@@ -251,48 +209,17 @@ while True:
                 else:
                     mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 
+
     mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44) # the red one
     horiz_rect = pygame.Rect(mariox-4, marioy+4, mario_width+8, mario_height-8) # the geen one
-    head_rect = pygame.Rect(mariox, marioy-9, mario_width - 2, 2)
-
-    grounded_this_frame = False
     for collider in colliders:
         platform_rect = pygame.Rect(collider[0] + x, collider[1] + y, collider[2], collider[3])
 
-        #coin
-        if len(collider) >= 5 and collider[4] == 3:
-            if horiz_rect.colliderect(platform_rect):
-                coin_sound.play()
-                index = colliders.index(collider)
-                sx, sy, sw, sh, st = collider
-                colliders[index] = (sx, sy, sw, sh, 99)
-                continue
-            continue
-
-        if len(collider) >= 5 and collider[4] == 99:
-            if horiz_rect.colliderect(platform_rect):
-                continue
-            continue
-
-        if len(collider) >= 5 and collider[3] > 4: # semisolids are 4 or under
-            if horiz_rect.colliderect(platform_rect) and mario_vely < 0:
-                if collider[4] == 1: # this code isn't very pretty, but push the new item into the list
-                     coin_sound.play()
-                     bump_sound.play()
-                     index = colliders.index(collider)
-                     sx, sy, sw, sh, st = collider
-                     colliders[index] = (sx, sy, sw, sh, 2)
-
-                marioy = platform_rect.bottom
-                mario_vely = 0
-                falling = True
-
         # Main mario collision
-        if collider[3] > 4: # semisolids
+        if collider[3] > 4:
             if horiz_rect.colliderect(platform_rect) and ((mario_rect.left < platform_rect.left and velx > 0) or (mario_rect.right > platform_rect.right and velx < 0)):
-                print(x)
                 x += velx
-                velx = 0
+                velx = 0;
                 print("collided side")
 
         if mario_rect.colliderect(platform_rect):
@@ -301,17 +228,16 @@ while True:
                 falling = False
                 marioy = platform_rect.top - mario_height
                 mario_vely = 0
-        if mario_vely > 0.42:
-                grounded = False
-                falling = True
 
+        # Horizontal collision check
+    
     # Before the stage is blitted, check bounds.
     if x > 0:
         x = 0
     if x < -9600:
         x = -9600
 
-    screen.blit(background, (0, -300))
+    screen.blit(background, (0, -400))
     screen.blit(stage, (x, y))
 
     # draw objects to the screen
@@ -323,7 +249,7 @@ while True:
                 screen.blit(hit_sprite, (c[0] + x, c[1] + y))
             if c[4] == 3:
                 screen.blit(coin_sprite, (c[0] + x, c[1] + y))
-
+    
     # Once the stage is done, render mario in whatever state he is set in.
     if direction == 1:
         flipped_mario = pygame.transform.flip(mario, True, False)
@@ -335,14 +261,14 @@ while True:
         for collider in colliders:
             pygame.draw.rect(screen, (255, 0, 0), 
                              (collider[0] + x, collider[1] + y, collider[2], collider[3]), 2)
-        pygame.draw.rect(screen, (255, 0, 0), mario_rect, 2) # vert
-        pygame.draw.rect(screen, (0, 255, 0), horiz_rect, 2) # horiz
-        pygame.draw.rect(screen, (0, 0, 255), head_rect, 2)
+        pygame.draw.rect(screen, (255, 0, 0), (mariox, marioy+45, mario_width, mario_height-45)) # vert
+        pygame.draw.rect(screen, (0, 255, 0), (mariox-4, marioy+4, mario_width+8, mario_height-8)) # horiz
 
 
     pygame.display.flip()
 
     clock.tick(60)  # limits FPS to 60
 
+print("why")
 pygame.quit()
 sys.exit()
