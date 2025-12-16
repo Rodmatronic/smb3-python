@@ -135,8 +135,17 @@ drag_start = (0, 0)
 drag_end = (0, 0)
 
 gamestate = 0
+titlex = 0
+titley = 0
+titleborderx = 0
+titlebordery = 0
+titletimer = 0
+
+titlefadetimer = 0
+fadeout = 0
 
 while True:
+    screen.fill((0, 0, 0))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -168,10 +177,40 @@ while True:
                 print("Box:", sx, sy, w, h)
 
     if gamestate == 0:
-        screen.blit(titlebackground, (0, 0))
-        screen.blit(titlescreen, (0, 0))
+        screen.blit(titlebackground, (titlex, titley))
+        if fadeout == 0:
+            titletimer+=1
+            if titletimer >= 0 and titletimer <= 300:
+                titlex-=1
+                print("right")
+            elif titletimer >= 300 and titletimer <= 600:
+                titley-=1
+                print("down")
+            elif titletimer >= 600 and titletimer <= 900:
+                titlex+=1
+                print("left")
+            elif titletimer >= 600 and titletimer <= 1200:
+                titley+=1
+                print("up")
+            elif titletimer >= 1200:
+                titletimer = 0
+
+        screen.blit(titlescreen, (titleborderx, titlebordery))
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
+            fadeout = 1
+
+        if fadeout == 1:
+            titley+=10
+            titlebordery+=10
+            if titley>600:
+                gamestate = 1
+            
+        #    width, height = titlebackground.get_size()
+        #    titlebackground = pygame.transform.scale(titlebackground, (width-2, height-2))
+        #    screen.blit(titlebackground, (titlex, titley))
+
+        if titlefadetimer >= 100:
             gamestate = 1
 
         pygame.display.flip()
