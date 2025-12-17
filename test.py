@@ -37,7 +37,8 @@ marioy = winy/2
 # 1 = Question
 # 2 = Hit Block
 # 3 = Coin
-# 4 = 
+# 4 = checkpost
+# 5 = checkpost (used)
 colliders = [
     (0, 767, 18000, 70, 0), # ground
     (3744, 735, 150, 61, 0), # ground stair 1
@@ -56,7 +57,7 @@ colliders = [
     # Pipes
     (5409, 673, 64, 93),
     (5474, 642, 64, 127),
-    (7743, 706, 64, 61), # this one
+    (7743, 706, 64, 61),
     (8097, 675, 64, 93),
     (8641, 705, 64, 61),
     (8735, 674, 64, 93),
@@ -81,6 +82,9 @@ colliders = [
     (6885, 482, 22, 32, 3),
     (6918, 482, 22, 32, 3),
     (6951, 482, 22, 32, 3),
+
+    # special stuff
+    (5138, 635, 64, 136, 4),
 ]
 
 # init pygame
@@ -113,11 +117,16 @@ walk_timer = 0
 question_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "question.png")))
 hit_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "hit.png")))
 coin_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "coin.png")))
+checkpost_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "checkpost.png")))
+checkpostused_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "checkpostused.png")))
+
 
 titlescreen = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "titlescreen.png")))
 titlebackground = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "titlebackground.png")))
 
 background = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bggrass.png")))
+hud = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "HUD.png")))
+
 stage = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "test.png")))
 mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 direction = 1
@@ -312,11 +321,30 @@ while True:
             # Main mario collision
             if collider[3] > 4:
                 if horiz_rect.colliderect(platform_rect) and ((mario_rect.left < platform_rect.left and velx > 0) or (mario_rect.right > platform_rect.right and velx < 0)):
+                    if len(collider) >= 5 and collider[4] == 99: # none
+                        break
+                    if len(collider) >= 5 and collider[4] == 3: # coin
+                        index = colliders.index(collider)
+                        sx, sy, sw, sh, st = collider
+                        colliders[index] = (sx, sy, sw, sh, 99)
+                        break
+                    if len(collider) >= 5 and collider[4] == 4: # checkpost
+                        index = colliders.index(collider)
+                        sx, sy, sw, sh, st = collider
+                        colliders[index] = (sx, sy, sw, sh, 5)
+                        break
                     x += velx
                     velx = 0;
                     print("collided side")
 
             if mario_rect.colliderect(platform_rect):
+                if len(collider) >= 5 and collider[4] == 99:
+                    break
+                if len(collider) >= 5 and collider[4] == 3:
+                    index = colliders.index(collider)
+                    sx, sy, sw, sh, st = collider
+                    colliders[index] = (sx, sy, sw, sh, 99)
+                    break
                 if mario_rect.bottom > platform_rect.top and mario_vely > 0:
                     grounded = True
                     falling = False
@@ -333,6 +361,7 @@ while True:
 
         screen.blit(background, (0, -400))
         screen.blit(stage, (x, y))
+        screen.blit(hud, (0, 0))
         text_surface = font.render(str(mariox), True, (255, 255, 240))
         screen.blit(text_surface, (25, 25))
         text_surface = font.render(str(marioy), True, (255, 255, 240))
@@ -349,6 +378,10 @@ while True:
                     screen.blit(hit_sprite, (c[0] + x, c[1] + y))
                 if c[4] == 3:
                     screen.blit(coin_sprite, (c[0] + x, c[1] + y))
+                if c[4] == 4:
+                    screen.blit(checkpost_sprite, (c[0] + x, c[1] + y))
+                if c[4] == 5:
+                    screen.blit(checkpostused_sprite, (c[0] + x, c[1] + y))
         
         # Once the stage is done, render mario in whatever state he is set in.
         if direction == 1:
