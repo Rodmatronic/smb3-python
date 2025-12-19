@@ -3,7 +3,7 @@ import pygame
 import sys
 
 # Enable stuff for debugging, looks ugly
-DEBUG = False
+DEBUG = True
 
 x = 0
 y = -385
@@ -39,6 +39,8 @@ marioy = winy/2
 # 3 = Coin
 # 4 = checkpost
 # 5 = checkpost (used)
+# 6 = goalpost
+# 7 = koopa
 colliders = [
     (0, 767, 18000, 70, 0), # ground
     (3744, 735, 150, 61, 0), # ground stair 1
@@ -85,6 +87,14 @@ colliders = [
 
     # special stuff
     (5138, 635, 64, 136, 4),
+    (9656, 479, 42, 292, 6),
+
+    # koopas
+    (765, 740, 32, 28, 7),
+    (805, 740, 32, 28, 7),
+    (845, 740, 32, 28, 7),
+    (885, 740, 32, 28, 7),
+    (925, 740, 32, 28, 7),
 ]
 
 # init pygame
@@ -94,17 +104,28 @@ screen = pygame.display.set_mode((winx, winy))
 clock = pygame.time.Clock()
 pygame.mixer.music.load("sound/track1.mp3")
 
+print("test1")
+
 jump_sound = pygame.mixer.Sound(os.path.join(os.getcwd(), 'sound', 'jump.wav'))
 jump_sound.set_volume(0.5)
+
+print("test2")
 
 coin_sound = pygame.mixer.Sound(os.path.join(os.getcwd(), 'sound', 'coin.wav'))
 coin_sound.set_volume(0.5)
 
+print("test3")
+
 bump_sound = pygame.mixer.Sound(os.path.join(os.getcwd(), 'sound', 'bump.wav'))
 bump_sound.set_volume(0.5)
 
-pygame.mixer.music.set_volume(0.5)
-pygame.mixer.music.play(-1)
+print("test4")
+
+#pygame.mixer.music.set_volume(0.5)
+#pygame.mixer.music.play(-1)
+
+print("test5")
+
 
 # images
 walk_frames = [
@@ -113,6 +134,14 @@ walk_frames = [
 ]
 walk_index = 0
 walk_timer = 0
+
+# images
+koopawalk_frames = [
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "koopawalk1.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "koopawalk2.png"))),
+]
+koopawalk_index = 0
+koopawalk_timer = 0
 
 question_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "question.png")))
 hit_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "hit.png")))
@@ -152,14 +181,13 @@ titletimer = 0
 
 titlefadetimer = 0
 fadeout = 0
+Running = True
 
-while True:
+koopa = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "koopawalk1.png")))
+
+while Running:
     screen.fill((0, 0, 0))
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 dragging = True
@@ -226,8 +254,7 @@ while True:
         clock.tick(60)
     else:
             
-        # main key movement
-        # Invert X, do not invert Y.
+# -------- movement --------
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RIGHT]:
@@ -289,6 +316,8 @@ while True:
             x = 0
             marioy = winy/2
 
+# -------- animation --------
+
         if not grounded:
             friction = 1.6
             if falling:
@@ -312,6 +341,7 @@ while True:
                     else:
                         mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
 
+# -------- mario collision --------
 
         mario_rect = pygame.Rect(mariox, marioy+44, mario_width, mario_height-44) # the red one
         horiz_rect = pygame.Rect(mariox-4, marioy+4, mario_width+8, mario_height-8) # the geen one
@@ -323,6 +353,8 @@ while True:
                 if horiz_rect.colliderect(platform_rect) and ((mario_rect.left < platform_rect.left and velx > 0) or (mario_rect.right > platform_rect.right and velx < 0)):
                     if len(collider) >= 5 and collider[4] == 99: # none
                         break
+                    if len(collider) >= 5 and collider[4] == 5: # used checkpoint
+                        break
                     if len(collider) >= 5 and collider[4] == 3: # coin
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
@@ -332,7 +364,18 @@ while True:
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
                         colliders[index] = (sx, sy, sw, sh, 5)
+                        print(colliders[index])
+                        print("yar")
                         break
+
+                    if len(collider) >= 5 and collider[4] == 6: # goalpost
+                        index = colliders.index(collider)
+                        sx, sy, sw, sh, st = collider
+                        colliders[index] = (sx, sy, sw, sh, 5)
+                        print(colliders[index])
+                        print("ending")
+                        break
+                    
                     x += velx
                     velx = 0;
                     print("collided side")
@@ -345,6 +388,8 @@ while True:
                     sx, sy, sw, sh, st = collider
                     colliders[index] = (sx, sy, sw, sh, 99)
                     break
+                if len(collider) >= 5 and collider[4] == 5:
+                    break
                 if mario_rect.bottom > platform_rect.top and mario_vely > 0:
                     grounded = True
                     falling = False
@@ -352,6 +397,8 @@ while True:
                     mario_vely = 0
 
             # Horizontal collision check
+
+# -------- blit stuff --------
         
         # Before the stage is blitted, check bounds.
         if x > 0:
@@ -359,7 +406,13 @@ while True:
         if x < -9600:
             x = -9600
 
-        screen.blit(background, (0, -400))
+# -------- background stuff --------
+
+        # various positions for paralax-like effect
+        screen.blit(background, (x/4, -400))
+        screen.blit(background, (x/4 + 1024, -400))
+        screen.blit(background, (x/4 + 2048, -400))
+        
         screen.blit(stage, (x, y))
         screen.blit(hud, (0, 0))
         text_surface = font.render(str(mariox), True, (255, 255, 240))
@@ -382,7 +435,19 @@ while True:
                     screen.blit(checkpost_sprite, (c[0] + x, c[1] + y))
                 if c[4] == 5:
                     screen.blit(checkpostused_sprite, (c[0] + x, c[1] + y))
-        
+                if c[4] == 7:
+                        koopawalk_timer += 1
+                        if koopawalk_timer >= 8:
+                               koopawalk_timer = 0
+                               koopawalk_index = (koopawalk_index + 1) % len(koopawalk_frames)
+                               koopa = koopawalk_frames[koopawalk_index]
+
+                        index = colliders.index(c)
+                        sx, sy, sw, sh, st = c
+                        sx-=0.5
+                        colliders[index] = (sx, sy, sw, sh, 7)
+                        screen.blit(koopa, (c[0] + x, c[1] + y-34)) # the 34 is cause koopas are higher than hitbox
+                
         # Once the stage is done, render mario in whatever state he is set in.
         if direction == 1:
             flipped_mario = pygame.transform.flip(mario, True, False)
@@ -403,4 +468,3 @@ while True:
         clock.tick(60)  # limits FPS to 60
 
 pygame.quit()
-sys.exit()
