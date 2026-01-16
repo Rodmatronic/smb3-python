@@ -3,7 +3,7 @@ import pygame
 import sys
 
 # Enable stuff for debugging, looks ugly
-DEBUG = True
+DEBUG = False
 
 x = 0
 y = -385
@@ -41,6 +41,7 @@ marioy = winy/2
 # 5 = checkpost (used)
 # 6 = goalpost
 # 7 = koopa
+# 10 = dragon coin
 colliders = [
     (0, 767, 18000, 70, 0), # ground
     (3744, 735, 150, 61, 0), # ground stair 1
@@ -85,6 +86,12 @@ colliders = [
     (6918, 482, 22, 32, 3),
     (6951, 482, 22, 32, 3),
 
+    # Dragon coins
+    (2526, 580, 35, 54, 10),
+    (3453, 580, 35, 54, 10),
+    (4672, 451, 35, 54, 10),
+    (7005, 454, 36, 51, 10),
+
     # special stuff
     (5138, 635, 64, 136, 4),
     (9656, 479, 42, 292, 6),
@@ -95,6 +102,23 @@ colliders = [
     (845, 740, 32, 28, 7),
     (885, 740, 32, 28, 7),
     (925, 740, 32, 28, 7),
+
+    # berries
+    (351, 705, 29, 21, 11),
+    (2111, 674, 31, 25, 11),
+    (2306, 705, 27, 23, 11),
+    (2786, 705, 26, 21, 11),
+    (3137, 673, 24, 26, 11),
+    (3582, 704, 30, 23, 11),
+    (4222, 577, 30, 26, 11),
+    (4383, 540, 29, 27, 11),
+    (5820, 702, 30, 26, 11),
+    (6624, 704, 27, 26, 11),
+    (7422, 705, 24, 23, 11),
+    (7582, 671, 29, 30, 11),
+    (7902, 670, 27, 28, 11),
+    (8285, 707, 27, 18, 11),
+    
 ]
 
 # init pygame
@@ -136,6 +160,8 @@ walk_index = 0
 walk_timer = 0
 
 # images
+
+# KOOPA images
 koopawalk_frames = [
     pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "koopawalk1.png"))),
     pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "koopawalk2.png"))),
@@ -143,9 +169,45 @@ koopawalk_frames = [
 koopawalk_index = 0
 koopawalk_timer = 0
 
+# COIN images
+coin_frames = [
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "coin1.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "coin2.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "coin3.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "coin4.png"))),
+]
+coin_index = 0
+coin_timer = 0
+
+# DRAGON COIN images (big coin)
+dragoncoin_frames = [
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin1.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin2.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin3.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin4.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin5.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin6.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin7.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin8.png"))),
+]
+dragoncoin_index = 0
+dragoncoin_timer = 0
+
+# Berries
+berry_frames = [
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "berry1.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "berry2.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "berry3.png"))),
+    pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "berry4.png"))),
+]
+berry_index = 0
+berry_timer = 0
+
 question_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "question.png")))
 hit_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "hit.png")))
 coin_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "coin.png")))
+dragoncoin_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "dragoncoin1.png")))
+berry_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "berry1.png")))
 checkpost_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "checkpost.png")))
 checkpostused_sprite = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "checkpostused.png")))
 
@@ -154,7 +216,6 @@ titlescreen = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "t
 titlebackground = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "titlebackground.png")))
 
 background = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bggrass.png")))
-hud = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "HUD.png")))
 
 stage = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "test.png")))
 mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
@@ -360,6 +421,14 @@ while Running:
                         sx, sy, sw, sh, st = collider
                         colliders[index] = (sx, sy, sw, sh, 99)
                         break
+                    if len(collider) >= 5 and collider[4] == 10: # dragon coin
+                        index = colliders.index(collider)
+                        sx, sy, sw, sh, st = collider
+                        colliders[index] = (sx, sy, sw, sh, 99)
+                        break
+                    if len(collider) >= 5 and collider[4] == 11: # berry
+                        break
+
                     if len(collider) >= 5 and collider[4] == 4: # checkpost
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
@@ -383,11 +452,19 @@ while Running:
             if mario_rect.colliderect(platform_rect):
                 if len(collider) >= 5 and collider[4] == 99:
                     break
+                if len(collider) >= 5 and collider[4] == 11:
+                    break
                 if len(collider) >= 5 and collider[4] == 3:
                     index = colliders.index(collider)
                     sx, sy, sw, sh, st = collider
                     colliders[index] = (sx, sy, sw, sh, 99)
                     break
+                if len(collider) >= 5 and collider[4] == 10:
+                    index = colliders.index(collider)
+                    sx, sy, sw, sh, st = collider
+                    colliders[index] = (sx, sy, sw, sh, 99)
+                    break
+
                 if len(collider) >= 5 and collider[4] == 5:
                     break
                 if mario_rect.bottom > platform_rect.top and mario_vely > 0:
@@ -414,13 +491,38 @@ while Running:
         screen.blit(background, (x/4 + 2048, -400))
         
         screen.blit(stage, (x, y))
-        screen.blit(hud, (0, 0))
         text_surface = font.render(str(mariox), True, (255, 255, 240))
         screen.blit(text_surface, (25, 25))
         text_surface = font.render(str(marioy), True, (255, 255, 240))
         screen.blit(text_surface, (25, 45))
         text_surface = font.render(str(velx), True, (255, 255, 240))
         screen.blit(text_surface, (25, 65))
+
+# ANIMATIONS, for objects
+
+        koopawalk_timer += 1
+        if koopawalk_timer >= 8:
+            koopawalk_timer = 0
+            koopawalk_index = (koopawalk_index + 1) % len(koopawalk_frames)
+            koopa = koopawalk_frames[koopawalk_index]
+
+        coin_timer += 1
+        if coin_timer >= 8:
+            coin_timer = 0
+            coin_index = (coin_index + 1) % len(coin_frames)
+            coin_sprite = coin_frames[coin_index]
+
+        dragoncoin_timer += 1
+        if dragoncoin_timer >= 8:
+            dragoncoin_timer = 0
+            dragoncoin_index = (dragoncoin_index + 1) % len(dragoncoin_frames)
+            dragoncoin_sprite = dragoncoin_frames[dragoncoin_index]
+
+        berry_timer += 1
+        if berry_timer >= 8:
+            berry_timer = 0
+            berry_index = (berry_index + 1) % len(berry_frames)
+            berry_sprite = berry_frames[berry_index]
 
         # draw objects to the screen
         for c in colliders:
@@ -430,23 +532,21 @@ while Running:
                 if c[4] == 2:
                     screen.blit(hit_sprite, (c[0] + x, c[1] + y))
                 if c[4] == 3:
-                    screen.blit(coin_sprite, (c[0] + x, c[1] + y))
+                    screen.blit(coin_sprite, (c[0] + x-5, c[1] + y))
                 if c[4] == 4:
                     screen.blit(checkpost_sprite, (c[0] + x, c[1] + y))
                 if c[4] == 5:
                     screen.blit(checkpostused_sprite, (c[0] + x, c[1] + y))
                 if c[4] == 7:
-                        koopawalk_timer += 1
-                        if koopawalk_timer >= 8:
-                               koopawalk_timer = 0
-                               koopawalk_index = (koopawalk_index + 1) % len(koopawalk_frames)
-                               koopa = koopawalk_frames[koopawalk_index]
-
                         index = colliders.index(c)
                         sx, sy, sw, sh, st = c
                         sx-=0.5
                         colliders[index] = (sx, sy, sw, sh, 7)
                         screen.blit(koopa, (c[0] + x, c[1] + y-34)) # the 34 is cause koopas are higher than hitbox
+                if c[4] == 10:
+                    screen.blit(dragoncoin_sprite, (c[0]+7 + x-5, c[1] + y))
+                if c[4] == 11:
+                    screen.blit(berry_sprite, (c[0]+7 + x-5, c[1] + y))
                 
         # Once the stage is done, render mario in whatever state he is set in.
         if direction == 1:
