@@ -1,3 +1,10 @@
+# Written by Roderick Pike.
+#
+# There are some things I don't like about this codebase,
+# nontheless I think it's good for a final programming
+# assignment.
+#
+
 import os
 import pygame
 import sys
@@ -23,6 +30,11 @@ skidding = False
 
 winx = 640
 winy = 480
+
+coins = 0
+score = 0
+lives = 5
+time = 500
 
 # Why falling AND grounded? It's for animation. If the Y acceleration is positive, we are falling.
 falling = True
@@ -65,15 +77,6 @@ colliders = [
     (8641, 705, 64, 61),
     (8735, 674, 64, 93),
 
-    # Question Boxes
-    (1216, 641, 32, 33, 1),
-    (1282, 641, 32, 33, 1),
-    (1697, 674, 32, 33, 1),
-    (1730, 674, 32, 33, 1),
-    (5699, 674, 32, 33, 1),
-    (5731, 674, 32, 33, 1),
-    (5761, 674, 32, 33, 1),
-
     # Coins
     (2471, 640, 22, 32, 3),
     (2502, 610, 22, 32, 3),
@@ -93,15 +96,19 @@ colliders = [
     (7005, 454, 36, 51, 10),
 
     # special stuff
-    (5138, 635, 64, 136, 4),
-    (9656, 479, 42, 292, 6),
+#    (5138, 635, 64, 136, 4),
+#    (9656, 479, 42, 292, 6),
 
     # koopas
     (765, 740, 32, 28, 7),
-    (805, 740, 32, 28, 7),
     (845, 740, 32, 28, 7),
-    (885, 740, 32, 28, 7),
     (925, 740, 32, 28, 7),
+
+    (1267, 740, 32, 28, 7),
+    (1980, 740, 32, 28, 7),
+    (3326, 740, 32, 28, 7),
+    (3675, 740, 32, 28, 7),
+
 
     # berries
     (351, 705, 29, 21, 11),
@@ -128,27 +135,17 @@ screen = pygame.display.set_mode((winx, winy))
 clock = pygame.time.Clock()
 pygame.mixer.music.load("sound/track1.mp3")
 
-print("test1")
-
 jump_sound = pygame.mixer.Sound(os.path.join(os.getcwd(), 'sound', 'jump.wav'))
 jump_sound.set_volume(0.5)
-
-print("test2")
 
 coin_sound = pygame.mixer.Sound(os.path.join(os.getcwd(), 'sound', 'coin.wav'))
 coin_sound.set_volume(0.5)
 
-print("test3")
-
 bump_sound = pygame.mixer.Sound(os.path.join(os.getcwd(), 'sound', 'bump.wav'))
 bump_sound.set_volume(0.5)
 
-print("test4")
-
-#pygame.mixer.music.set_volume(0.5)
-#pygame.mixer.music.play(-1)
-
-print("test5")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)
 
 
 # images
@@ -219,6 +216,9 @@ background = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bg
 
 stage = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "test.png")))
 mario = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "marioidle.png")))
+
+hud = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "hud.png")))
+
 direction = 1
 prev_direction = 1
 
@@ -227,7 +227,7 @@ prev_direction = 1
 mario_width = 32
 mario_height = 47
 
-font = pygame.font.Font(None, 24) # Default font with size 36
+font = pygame.font.Font(os.path.join(os.getcwd(), 'world.ttf'), 16) # Custom font
 
 dragging = False
 drag_start = (0, 0)
@@ -249,6 +249,10 @@ koopa = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "koopawa
 while Running:
     screen.fill((0, 0, 0))
     for event in pygame.event.get():
+        #
+        # This is never used in-game and is STRICTLY for
+        # when creating levels.
+        #
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 dragging = True
@@ -257,6 +261,11 @@ while Running:
                 ly = dy - y
                 drag_start = (lx, ly)
                 drag_end = (lx, ly)
+
+        if event.type == pygame.QUIT:
+            Running = False
+            pygame.quit()
+            sys.exit()
 
         if event.type == pygame.MOUSEMOTION:
             if dragging:
@@ -276,46 +285,31 @@ while Running:
 
     if gamestate == 0:
         screen.blit(titlebackground, (titlex, titley))
-        if fadeout == 0:
-            titletimer+=1
-            if titletimer >= 0 and titletimer <= 300:
-                titlex-=1
-                print("right")
-            elif titletimer >= 300 and titletimer <= 600:
-                titley-=1
-                print("down")
-            elif titletimer >= 600 and titletimer <= 900:
-                titlex+=1
-                print("left")
-            elif titletimer >= 600 and titletimer <= 1200:
-                titley+=1
-                print("up")
-            elif titletimer >= 1200:
-                titletimer = 0
 
         screen.blit(titlescreen, (titleborderx, titlebordery))
+
+        # how-to text and shadow
+        text_surface = font.render("X to run  Z to jump  arrows to move!", True, (0, 0, 0))
+        screen.blit(text_surface, (122, 302))
+
+        text_surface = font.render("X to run  Z to jump  arrows to move!", True, (255, 255, 255))
+        screen.blit(text_surface, (120, 300))
+
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
-            fadeout = 1
+            gamestate=1
 
-        if fadeout == 1:
-            titley+=10
-            titlebordery+=10
-            if titley>600:
-                gamestate = 1
-            
         #    width, height = titlebackground.get_size()
         #    titlebackground = pygame.transform.scale(titlebackground, (width-2, height-2))
         #    screen.blit(titlebackground, (titlex, titley))
-
-        if titlefadetimer >= 100:
-            gamestate = 1
 
         pygame.display.flip()
         clock.tick(60)
     else:
             
 # -------- movement --------
+
+        time-=0.05
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RIGHT]:
@@ -350,7 +344,6 @@ while Running:
 
         if skidding == True:
             skid_timer+=0.1
-            print(skid_timer)
 
         x -= velx
         if velx > limit:
@@ -360,6 +353,7 @@ while Running:
         # Jump logic
         if keys[pygame.K_z]:
             if grounded:
+                jump_sound.play()
                 mario_vely += -11
                 falling = False
                 grounded = False
@@ -373,7 +367,6 @@ while Running:
         marioy += mario_vely
 
         if marioy > 500:
-            print("we are dead")
             x = 0
             marioy = winy/2
 
@@ -417,11 +410,23 @@ while Running:
                     if len(collider) >= 5 and collider[4] == 5: # used checkpoint
                         break
                     if len(collider) >= 5 and collider[4] == 3: # coin
+                        coin_sound.play()
+                        coins+=1
+                        if coins > 99:
+                            coins = 0
+                            lives+=1
+                        score+=100
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
                         colliders[index] = (sx, sy, sw, sh, 99)
                         break
                     if len(collider) >= 5 and collider[4] == 10: # dragon coin
+                        coin_sound.play()
+                        coins+=10
+                        if coins > 99:
+                            coins = 0
+                            lives+=1
+                        score+=1000
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
                         colliders[index] = (sx, sy, sw, sh, 99)
@@ -433,21 +438,16 @@ while Running:
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
                         colliders[index] = (sx, sy, sw, sh, 5)
-                        print(colliders[index])
-                        print("yar")
                         break
 
                     if len(collider) >= 5 and collider[4] == 6: # goalpost
                         index = colliders.index(collider)
                         sx, sy, sw, sh, st = collider
                         colliders[index] = (sx, sy, sw, sh, 5)
-                        print(colliders[index])
-                        print("ending")
                         break
                     
                     x += velx
                     velx = 0;
-                    print("collided side")
 
             if mario_rect.colliderect(platform_rect):
                 if len(collider) >= 5 and collider[4] == 99:
@@ -486,17 +486,21 @@ while Running:
 # -------- background stuff --------
 
         # various positions for paralax-like effect
-        screen.blit(background, (x/4, -400))
-        screen.blit(background, (x/4 + 1024, -400))
-        screen.blit(background, (x/4 + 2048, -400))
-        
+        screen.blit(background, (x/4, -359))
+        screen.blit(background, (x/4 + 1024, -350))
+        screen.blit(background, (x/4 + 2048, -350))
+
         screen.blit(stage, (x, y))
-        text_surface = font.render(str(mariox), True, (255, 255, 240))
-        screen.blit(text_surface, (25, 25))
-        text_surface = font.render(str(marioy), True, (255, 255, 240))
-        screen.blit(text_surface, (25, 45))
-        text_surface = font.render(str(velx), True, (255, 255, 240))
-        screen.blit(text_surface, (25, 65))
+        screen.blit(hud, (0, 0))
+        text_surface = font.render(str(coins), True, (255, 255, 240))
+        screen.blit(text_surface, (514, 24))
+        text_surface = font.render(str(score), True, (255, 255, 240))
+        screen.blit(text_surface, (434, 40))
+        text_surface = font.render(str(round(time)), True, (255, 255, 240))
+        screen.blit(text_surface, (372, 40))
+        text_surface = font.render(str(lives), True, (255, 255, 240))
+        screen.blit(text_surface, (138, 40))
+
 
 # ANIMATIONS, for objects
 
@@ -565,6 +569,8 @@ while Running:
 
         pygame.display.flip()
 
-        clock.tick(60)  # limits FPS to 60
+        # This code isn't very efficient and it lags a bunch.
+        # set a lower baseline so lag spikes are lessened
+        clock.tick(50)
 
 pygame.quit()
